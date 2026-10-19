@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import json
 import os
 import re
@@ -17,6 +18,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ledgerio  # noqa: E402
 from loopctl import FAIL_VERDICTS, PASS_VERDICTS  # noqa: E402
 
+SCANNER_PATH = Path(__file__).resolve().parents[2] / "safe-push" / "scripts" / "redact-secrets.py"
+SCANNER_SPEC = importlib.util.spec_from_file_location("runctl_secret_scanner", SCANNER_PATH)
+SCANNER = importlib.util.module_from_spec(SCANNER_SPEC)
+sys.modules[SCANNER_SPEC.name] = SCANNER
+SCANNER_SPEC.loader.exec_module(SCANNER)
+
 LEVELS = ("claimed", "observed", "failure-proven", "independently-verified")
 DECISION_COLUMNS = ("row", "ts", "phase", "decision", "why", "rejected", "evidence", "level", "result", "supersedes")
 STEP_STATES = ("pending", "done", "skipped")
@@ -28,13 +35,6 @@ OPTIONAL_RE = re.compile(r"\(optional\)|^optionally\b|^if you |^when asked", re.
 RUN_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
 SHA_RE = re.compile(r"^[0-9a-f]{7,40}$")
 URL_RE = re.compile(r"^https?://\S+$")
-SECRET_RES = [
-    re.compile(r"sk-[A-Za-z0-9_-]{20,}"),
-    re.compile(r"\bgh[pousr]_[A-Za-z0-9]{20,}"),
-    re.compile(r"\bAKIA[0-9A-Z]{16}\b"),
-    re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----"),
-    re.compile(r"\beyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}"),
-]
 MIN_REASON = 8
 SAFE_ENV_KEYS = (
     "PATH", "HOME", "TMPDIR", "LANG", "LC_ALL", "LC_CTYPE", "TERM", "SHELL", "USER", "LOGNAME",
@@ -129,12 +129,11 @@ def clean_cell(value: object) -> str:
 
 
 def secret_in(text: str) -> bool:
-    return any(pattern.search(text) for pattern in SECRET_RES) or bool(PROXY_CREDENTIAL_RE.search(text))
+    return bool(SCANNER.findings_for(text, "record.txt")) or bool(PROXY_CREDENTIAL_RE.search(text))
 
 
 def redact(text: str) -> str:
-    for pattern in SECRET_RES:
-        text = pattern.sub("[REDACTED]", text)
+    text, _ = SCANNER.redact_text(text, "record.txt")
     return PROXY_CREDENTIAL_RE.sub("://[REDACTED]@", text)
 
 

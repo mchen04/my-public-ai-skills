@@ -32,7 +32,8 @@ authorization clauses stay with the skill that performs the action.
 | [answer-by-experiment](references/answer-by-experiment.md) | A factual question can be tested | Settle observable questions with a small authorized experiment; ask the user for product or preference decisions. |
 
 
-Answer-by-experiment is adopted from pstack. The other leaves extract rules already used here.
+Answer-by-experiment, one-owner-per-rule, and structural prevention adapt ideas from pstack.
+See the repository's [third-party notices](../../THIRD_PARTY_NOTICES.md).
 
 Use [shared terms](references/terms.md) when workflows use different labels for related evidence.
 

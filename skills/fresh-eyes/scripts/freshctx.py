@@ -348,13 +348,16 @@ def cmd_dispatch(args: argparse.Namespace) -> int:
         attempts += 1
         with tempfile.TemporaryDirectory(prefix="freshctx-") as tmp:
             last = Path(tmp) / "last.txt"
+            cwd = Path(args.repo).resolve() if args.repo else Path(tmp) / "empty"
+            if not args.repo:
+                cwd.mkdir()
             if family == "claude":
                 command = claude_command(prompt, args.model, effort, "text", "read" if args.repo else None)
             else:
-                command = codex_command(prompt, args.model, effort, last, "read-only", Path(args.repo) if args.repo else None)
-            result = execute(resolve_command(command), Path(args.repo) if args.repo else None, args.timeout)
+                command = codex_command(prompt, args.model, effort, last, "read-only", cwd)
+            result = execute(resolve_command(command), cwd, args.timeout)
             text = final_text(family, result, last)
-        record = {"attempt": attempts, "exit": result["exit"], "stderr": result["stderr"][-400:], "home": result.get("home")}
+        record = {"attempt": attempts, "exit": result["exit"], "stderr": result["stderr"][-400:]}
         if out_dir:
             (out_dir / f"response-{attempts}.txt").write_text(text, encoding="utf-8")
         if result["exit"] == 0:
@@ -453,7 +456,6 @@ def run_worker(
         "cwd": str(cwd),
         "exit": result["exit"],
         "error": "" if result["exit"] == 0 else result["stderr"][-400:],
-        "home": result.get("home"),
         **parsed,
         **summarize_calls(parsed["tool_calls"]),
     }
@@ -525,7 +527,7 @@ def main(argv: list[str] | None = None) -> int:
     disp.add_argument("--family", default="other", help="other | same | claude | codex (default: other)")
     disp.add_argument("--charter", required=True, help="file holding the exact standard, pasted verbatim")
     disp.add_argument("--artifact", action="append", default=[], help="file to review; repeatable")
-    disp.add_argument("--repo", help="directory the reviewer may read; omit for a prompt-only review")
+    disp.add_argument("--repo", help="review working directory, not a read boundary; omit for an empty-directory prompt review")
     disp.add_argument("--model", default="default", help="explicit model id; never guessed")
     disp.add_argument("--role", help="take family, model and effort from assets/roles.json (review, review-claude, ...)")
     disp.add_argument("--effort")

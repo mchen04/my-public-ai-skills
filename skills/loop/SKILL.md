@@ -33,6 +33,7 @@ Opinion graders use `fresh-eyes`, `--max-cycles 8` at init and increased N. The 
 6. RECORD with `loopctl.py record`, then `status`. Use a findings count or stable labels. For commands, `loopctl.py check --log <log> -- <command>` produces the receipt passed to record.
 
 `loopctl.py`, `flowctl.py`, `runctl.py` and `ledgerio.py` are EXECUTED. Helpers own ledger invariants. Only `loopctl.py bar --reason <why> --authorized-by <human>` changes the frozen bar.
+`runctl.py` uses the sibling `safe-push` credential scanner for worker records and environment checks.
 
 ## Stops
 

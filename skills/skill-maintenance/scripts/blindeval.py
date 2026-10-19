@@ -419,6 +419,8 @@ def evaluate(args: argparse.Namespace) -> int:
         return 2
     probes = leak_probes(fx["expected"])
     out_dir = Path(args.out).resolve() if args.out else Path(tempfile.mkdtemp(prefix="blindeval-"))
+    if out_dir.exists() and any(out_dir.iterdir()):
+        raise SystemExit("--out must be empty; preserve prior evidence")
     out_dir.mkdir(parents=True, exist_ok=True)
     parent = Path(tempfile.mkdtemp(prefix="run-"))
     try:
@@ -905,6 +907,16 @@ def cmd_selftest(_args: argparse.Namespace) -> int:
         report = json.loads(buf.getvalue().split("\nVERDICT")[0])
         if report["results"]["v2"]["checks"] != "2/2" or report["results"]["v1"]["checks"] != "0/2":
             raise SystemExit(f"selftest: mapping revealed the wrong results: {report['results']}")
+        recorded = {p.name: p.read_bytes() for p in (Path(tmp) / "out").iterdir()}
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            try:
+                main(argv)
+                raise SystemExit("selftest: existing evidence must not be overwritten")
+            except SystemExit as stop:
+                if "--out must be empty" not in str(stop):
+                    raise
+        if recorded != {p.name: p.read_bytes() for p in (Path(tmp) / "out").iterdir()}:
+            raise SystemExit("selftest: refusing a reused output directory changed existing evidence")
         buf = io.StringIO()
         with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(io.StringIO()):
             code = main([*argv[:-2], "--must-pass", "v1", "--out", str(Path(tmp) / "out2")])

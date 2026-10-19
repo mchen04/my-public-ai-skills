@@ -34,4 +34,8 @@ Keep the score threshold hidden from judges. Require executable or cited evidenc
 
 ## Composes with
 
+Prompt reviews without `--repo` start in an empty temporary directory.
+`--repo` sets the working directory; it does not restrict absolute file reads.
+Use a disposable environment when inputs require filesystem isolation.
+
 [Evidence scale](references/evidence-scale.md) owns claim labels. Return verdict, findings and evidence to the requesting workflow.

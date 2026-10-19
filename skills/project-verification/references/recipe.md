@@ -73,3 +73,6 @@ changes the worktree fails as a harness problem: keep instance data outside the 
 
 On a shared machine, install Playwright engines with `PLAYWRIGHT_SKIP_BROWSER_GC=1` and call the
 project's installed CLI, not an `npx` lookup.
+
+Generated JavaScript test suggestions use `npx --no-install` and require installed project dependencies.
+Inspect suggestions before running them. Browser recipe commands still use the project's installed CLI directly.

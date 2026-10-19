@@ -89,10 +89,11 @@ USER REQUEST
 Return exactly one catalog skill name or NONE. Return no explanation."""
 
 
-def command_for(target: Target, prompt: str, output_path: Path | None, effort: str | None = None) -> list[str]:
+def command_for(target: Target, prompt: str, output_path: Path | None, effort: str | None = None,
+                cwd: Path | None = None) -> list[str]:
     if target.runner == "claude":
         return freshctx.claude_command(prompt, target.model, effort=effort, output="text")
-    return freshctx.codex_command(prompt, target.model, effort=effort, output_path=output_path)
+    return freshctx.codex_command(prompt, target.model, effort=effort, output_path=output_path, cwd=cwd)
 
 
 def normalize_answer(output: str) -> str | None:
@@ -106,13 +107,15 @@ def normalize_answer(output: str) -> str | None:
 def query_model(target: Target, prompt: str, effort: str | None = None) -> tuple[str | None, str | None]:
     output_path: Path | None = None
     with tempfile.TemporaryDirectory(prefix="skill-route-eval-") as temp_dir:
+        cwd = Path(temp_dir) / "empty"
+        cwd.mkdir()
         if target.runner == "codex":
             output_path = Path(temp_dir) / "last-message.txt"
         try:
-            command = freshctx.resolve_command(command_for(target, prompt, output_path, effort))
+            command = freshctx.resolve_command(command_for(target, prompt, output_path, effort, cwd))
         except FileNotFoundError as error:
             return None, str(error)
-        result = freshctx.execute(command, None, TIMEOUT_S)
+        result = freshctx.execute(command, cwd, TIMEOUT_S)
 
         if result["exit"] != 0:
             detail = (result["stderr"] or result["stdout"]).strip()[:300]

@@ -187,9 +187,9 @@ class TestSelectTest(unittest.TestCase):
         self.assertEqual(code, 0, out)
         self.assertEqual(result["tests"], ["svc/handler_test.go", "web/src/button.test.ts", "web/test/format.spec.ts"])
         commands = {(item["kind"], item["cwd"]): item["argv"] for item in result["commands"]}
-        self.assertEqual(commands[("test", "web")], ["npx", "vitest", "run", "src/button.test.ts", "test/format.spec.ts"])
-        self.assertEqual(commands[("typecheck", "web")], ["npx", "tsc", "--noEmit", "-p", "."])
-        self.assertEqual(commands[("lint", "web")], ["npx", "eslint", "src/button.ts", "src/util/format.ts"])
+        self.assertEqual(commands[("test", "web")], ["npx", "--no-install", "vitest", "run", "src/button.test.ts", "test/format.spec.ts"])
+        self.assertEqual(commands[("typecheck", "web")], ["npx", "--no-install", "tsc", "--noEmit", "-p", "."])
+        self.assertEqual(commands[("lint", "web")], ["npx", "--no-install", "eslint", "src/button.ts", "src/util/format.ts"])
         self.assertEqual(commands[("test", ".")], ["go", "test", "./svc"])
         self.assertNotIn("lib/x_test.go", result["tests"])
 

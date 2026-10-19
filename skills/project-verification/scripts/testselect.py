@@ -278,15 +278,15 @@ def detect_node(repo: Path, root: str) -> dict:
     script = (manifest.get("scripts") or {}).get("test", "")
     found: dict = {"full": ["npm", "test"]} if script else {}
     if "vitest" in deps or "vitest" in script:
-        found["test"] = ["npx", "vitest", "run", "{tests}"]
+        found["test"] = ["npx", "--no-install", "vitest", "run", "{tests}"]
     elif "jest" in deps or "jest" in script:
-        found["test"] = ["npx", "jest", "{tests}"]
+        found["test"] = ["npx", "--no-install", "jest", "{tests}"]
     elif script.startswith("node --test"):
         found["test"] = ["node", "--test", "{tests}"]
     if "eslint" in deps:
-        found["lint"] = ["npx", "eslint", "{files}"]
+        found["lint"] = ["npx", "--no-install", "eslint", "{files}"]
     if (folder / "tsconfig.json").is_file():
-        found["typecheck"] = ["npx", "tsc", "--noEmit", "-p", "."]
+        found["typecheck"] = ["npx", "--no-install", "tsc", "--noEmit", "-p", "."]
     return found
 
 

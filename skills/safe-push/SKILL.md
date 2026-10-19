@@ -11,7 +11,7 @@ Commit/push the authorized branch; leave opening PRs to `open-pr` and merging is
 ## Process
 
 1. Run EXECUTED `scripts/redact-secrets.py check-working-tree` before committing. Exit 2 names candidate file/line/kind. Never print, commit, or paste a secret value yourself. Redact with `redact-secrets.py redact -- <exact-paths>`, check the diff, and rerun the project checks. Keep real credential files such as `.env` out of git and commit a redacted example. Also run the repository's own scanner if it has one. Commit only this task's paths, and leave paths that were already dirty. [Secrets](references/secrets.md) covers synthetic fixtures.
-2. Resolve owner/repo from origin. Read `~/.config/git-push-accounts.json`: exact `repos`, then `owners`, optional pinned `base`. Without a match, probe `gh api repos/<owner>/<repo> -q .permissions.push` for logged-in accounts and record the working mapping. A private-repository 404 may mean the wrong account. If none can push, report the missing login/invite.
+2. Resolve owner/repo from origin. Read `~/.config/git-push-accounts.json`: exact `repos`, then `owners`, optional pinned `base`. The [mapping format](references/accounts.md) has synthetic examples. Without a match, probe `gh api repos/<owner>/<repo> -q .permissions.push` for logged-in accounts and record the working mapping. A private-repository 404 may mean the wrong account. If none can push, report the missing login/invite.
 3. Run each remote Git/gh operation through EXECUTED `scripts/with_account.py --user <account> -- <command>`. It switches under a lock shared by wrapper callers and restores the previous account on every exit path. Never leave the active account changed. Inside that wrapper, use only gh credentials:
 
    ```bash

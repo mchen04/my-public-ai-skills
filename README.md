@@ -111,6 +111,8 @@ Reviewers use read-only tools; evaluation workers default to Codex with a worksp
 Operator permission settings remain active. Claude requires a CLI supporting `--safe-mode`, verified with version 2.1.303.
 Claude write workers require explicit `--allow-unsandboxed-claude` approval and retain host file access.
 Use a disposable environment for untrusted artifacts. Runtime configuration can still influence a fresh conversation.
+Prompt reviews and routing evaluations start in empty temporary directories.
+Working directories do not restrict absolute reads; isolation requires a separate environment.
 Video rendering tests skip when `ffmpeg` or `ffprobe` is unavailable; CI installs them.
 
 The gate does not prove every workflow against real accounts, production applications, or every supported agent.

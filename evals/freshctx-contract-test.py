@@ -149,7 +149,6 @@ class RecordingParsers(unittest.TestCase):
                                                    allow_unsandboxed_claude=(family == "claude"))
                     expected = default if effort is None else effort
                     self.assertEqual(record["requested_effort"], expected)
-                    self.assertNotIn("effective_effort", record)
                     command = execute.call_args.args[0]
                     if family == "claude":
                         self.assertEqual(command[command.index("--effort") + 1], expected)
@@ -168,7 +167,6 @@ class RecordingParsers(unittest.TestCase):
                                               "--cwd", str(root), "--prompt-file", str(prompt), "--record", str(receipt)]), 0)
             record = json.loads(receipt.read_text())
             self.assertEqual(record["requested_effort"], "low")
-            self.assertNotIn("effective_effort", record)
 
     def test_claude_stream_records_tool_calls_and_result(self):
         stream = "\n".join([
@@ -238,6 +236,14 @@ class TimeoutAndEnvironment(unittest.TestCase):
         self.assertNotIn("AKIA", record["final"])
         self.assertIn("[REDACTED]", record["tool_calls"][0]["output"])
 
+    def test_records_and_environment_reject_the_same_token_families_as_the_scanner(self):
+        tokens = ["github_" + "pat_" + "B" * 30, "xoxb-" + "C" * 24, "ASIA" + "D" * 16]
+        for token in tokens:
+            self.assertTrue(MODULE.runctl.secret_in(token))
+            self.assertEqual(MODULE.redact_record({"final": token}), {"final": "[REDACTED]"})
+            with self.assertRaises(ValueError):
+                MODULE.minimal_env({"PROBE": token})
+
 
 class PermissionBoundaries(unittest.TestCase):
     def test_claude_write_worker_requires_explicit_permission(self):
@@ -260,14 +266,58 @@ class PermissionBoundaries(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             profile = Path(folder) / "profile"
             profile.mkdir()
-            (profile / "auth.json").write_text("{}")
             failure = {"exit": 1, "stdout": "", "stderr": "failed to initialize in-process app-server client"}
             success = {"exit": 0, "stdout": "different profile", "stderr": ""}
-            with patch.object(MODULE, "_execute_once", side_effect=[failure, success]), \
+            with patch.object(MODULE, "_execute_once", side_effect=[failure, success]) as execute_once, \
                  patch.dict(os.environ, {"CODEX_HOME": str(profile)}):
                 result = MODULE.execute(["/x/bin/codex", "exec"], None, 10, {"CODEX_HOME": str(profile)})
             self.assertEqual(result, failure)
-            self.assertNotIn("home", result)
+            execute_once.assert_called_once()
+
+    def test_prompt_review_uses_an_empty_working_directory(self):
+        with tempfile.TemporaryDirectory() as folder:
+            charter = Path(folder) / "charter.md"
+            charter.write_text("Review only the supplied text.")
+            observed = []
+
+            def execute(command, cwd, timeout):
+                self.assertIsNotNone(cwd)
+                self.assertEqual(list(cwd.iterdir()), [])
+                self.assertEqual(command[command.index("--cd") + 1], str(cwd))
+                observed.append(cwd)
+                return {"exit": 0, "stdout": "VERDICT: APPROVE", "stderr": ""}
+
+            info = {"current": "claude", "families": {"codex": {"available": True}}}
+            with patch.object(MODULE, "detect", return_value=info), \
+                 patch.object(MODULE, "resolve_command", side_effect=lambda command: command), \
+                 patch.object(MODULE, "execute", side_effect=execute), \
+                 contextlib.redirect_stdout(io.StringIO()):
+                code = MODULE.main(["dispatch", "--family", "codex", "--charter", str(charter)])
+            self.assertEqual(code, 0)
+            self.assertEqual(len(observed), 1)
+            self.assertFalse(observed[0].exists())
+
+    def test_routing_query_uses_an_empty_working_directory(self):
+        spec = importlib.util.spec_from_file_location("routing_eval", ROOT / "scripts/eval-triggers-model.py")
+        routing = importlib.util.module_from_spec(spec)
+        sys.modules[spec.name] = routing
+        spec.loader.exec_module(routing)
+        observed = []
+
+        def execute(command, cwd, timeout):
+            self.assertIsNotNone(cwd)
+            self.assertEqual(list(cwd.iterdir()), [])
+            self.assertEqual(command[command.index("--cd") + 1], str(cwd))
+            observed.append(cwd)
+            return {"exit": 0, "stdout": "fix-bug", "stderr": ""}
+
+        with patch.object(routing.freshctx, "resolve_command", side_effect=lambda command: command), \
+             patch.object(routing.freshctx, "execute", side_effect=execute):
+            answer, error = routing.query_model(routing.Target.parse("codex:default"), "Find a skill.")
+        self.assertEqual(answer, "fix-bug")
+        self.assertIsNone(error)
+        self.assertEqual(len(observed), 1)
+        self.assertFalse(observed[0].exists())
 
 
 if __name__ == "__main__":
