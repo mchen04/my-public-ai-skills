@@ -27,6 +27,10 @@ JS_IMPORT = re.compile(r"""(?:from\s+|require\(\s*|import\(\s*|import\s+)['"](\.
 LANGUAGE = {".py": "python", ".go": "go", ".rs": "rust", **{ext: "node" for ext in JS_EXT}}
 
 
+def cache_root() -> Path:
+    return Path(os.environ.get("PROJECT_VERIFICATION_CACHE", Path.home() / ".cache" / "project-verification")).expanduser()
+
+
 class SelectError(Exception):
     pass
 
@@ -472,7 +476,7 @@ def write_log(repo: Path, record: dict, target: str | None) -> str | None:
     if target == "-":
         return None
     path = Path(target).expanduser() if target else (
-        Path.home() / ".cache" / "project-verification" / repo.name / "testselect"
+        cache_root() / repo.name / "testselect"
         / f"{time.strftime('%Y%m%dT%H%M%S')}-{os.getpid()}.json")
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -522,7 +526,7 @@ def main() -> int:
     parser.add_argument("--fallback-full", action="store_true",
                         help="with --run, run the full suite when the mapping is unknown")
     parser.add_argument("--timeout", type=float, default=1800, help="seconds per command (default 1800)")
-    parser.add_argument("--log", help="audit log path; - writes none (default ~/.cache/project-verification/...)")
+    parser.add_argument("--log", help="audit log path; - writes none (default: configured verification cache)")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
     try:

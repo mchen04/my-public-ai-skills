@@ -22,7 +22,14 @@ SCANNER_PATH = Path(__file__).resolve().parents[2] / "safe-push" / "scripts" / "
 SCANNER_SPEC = importlib.util.spec_from_file_location("runctl_secret_scanner", SCANNER_PATH)
 SCANNER = importlib.util.module_from_spec(SCANNER_SPEC)
 sys.modules[SCANNER_SPEC.name] = SCANNER
-SCANNER_SPEC.loader.exec_module(SCANNER)
+try:
+    SCANNER_SPEC.loader.exec_module(SCANNER)
+except OSError as error:
+    message = "the sibling safe-push skill must include scripts/redact-secrets.py"
+    if __name__ == "__main__":
+        print(f"runctl: {message}", file=sys.stderr)
+        raise SystemExit(2)
+    raise ImportError(message) from error
 
 LEVELS = ("claimed", "observed", "failure-proven", "independently-verified")
 DECISION_COLUMNS = ("row", "ts", "phase", "decision", "why", "rejected", "evidence", "level", "result", "supersedes")

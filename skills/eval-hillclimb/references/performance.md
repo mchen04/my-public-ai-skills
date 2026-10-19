@@ -12,10 +12,13 @@ Keep build, cache, power, background load, dataset and timed boundary comparable
 
 Run each side as production runs it: release build, production flags, pools, caches and data. A side left on defaults compares configurations, not implementations. Do the limit arithmetic before you accept a gain. Removing a part that takes 10% of the run makes the run at most about 11% faster, and a result past a limit measured something other than the work, such as a cache, a no-op or a bug. Confirm that the timed work actually ran: count the requests, rows or bytes inside the timed region. Lazy generators, unawaited promises and timeouts produce numbers for work that never happened.
 
-Model experiments distinguish research, training and inference capacity; cloud access does not prove memory/accelerators or Apple Silicon performance. For compression, prefer meaningful student/layer changes with recovery training over repeated tiny trims within the frozen gates.
+For model experiments, check compute, memory, and hardware requirements before choosing a test environment.
+Measure model quality and serving latency separately. Cloud access alone does not prove that the required hardware is available.
 
-## Checkpoint acceptance
+## Saved artifact acceptance
 
-Validate downloads, archive paths, complete manifests, hashes and replay/scoring before keeping a checkpoint. Bind numbers to replay-verified source/model/input receipts. Reconstruct the whole target manifest before reclaiming evidence; verified chunks do not prove recovery.
+Validate downloads, archive paths, complete manifests, hashes, and restored behavior before accepting a saved artifact.
+Bind results to the source, model, and inputs that produced them.
+Restore the complete artifact before deleting source copies. Verified chunks do not prove complete restoration.
 
 Do not load-test production or shared services without approval. Test concurrency changes, keep correctness under concurrency, and preserve operational logging/error paths. [Skill evals](skill-evals.md) owns model quality measurement.

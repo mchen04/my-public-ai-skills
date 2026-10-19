@@ -69,6 +69,9 @@ Each run writes `report.json`, an instance log, and one receipt per step under
 and the worktree revision. `accept` refuses an edited, missing, or stale receipt. A step that
 changes the worktree fails as a harness problem: keep instance data outside the project.
 
+Set `PROJECT_VERIFICATION_CACHE` to change the cache root for reports, locks, and test-selection logs.
+Keep this directory outside the project. Tests use a temporary cache.
+
 ## Browser runner setup
 
 On a shared machine, install Playwright engines with `PLAYWRIGHT_SKIP_BROWSER_GC=1` and call the

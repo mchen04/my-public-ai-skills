@@ -27,15 +27,16 @@ The dispatcher starts a new conversation and preserves operator permission rules
 Claude uses `--safe-mode` to disable custom steering and hooks; the CLI must support that flag.
 Codex keeps its configuration and execution policies while using an explicit sandbox.
 A fresh conversation is not a clean profile; use an operator-approved profile when strict context isolation is required.
+Install the sibling `loop` and `safe-push` skills; the dispatcher uses their state and credential helpers.
 Claude write workers require explicit `--allow-unsandboxed-claude` approval and retain host file access.
 Use disposable environments for untrusted tasks. Never discard permission rules to make a review cleaner. For runtime subagents, reproduce that boundary and ask for every finding, severity, location and preferred fix. End exactly `VERDICT: APPROVE` or `VERDICT: BLOCK`, or `SCORE: <n>` when requested. Apply [loop's grammar](../loop/SKILL.md#workflow); retry indeterminate judgment at most twice.
 
 Keep the score threshold hidden from judges. Require executable or cited evidence for claims. For large artifacts, pass a small revision/hash/path manifest and require the complete artifact to be read; argument-limit failure is indeterminate.
 
-## Composes with
-
 Prompt reviews without `--repo` start in an empty temporary directory.
 `--repo` sets the working directory; it does not restrict absolute file reads.
 Use a disposable environment when inputs require filesystem isolation.
+
+## Composes with
 
 [Evidence scale](references/evidence-scale.md) owns claim labels. Return verdict, findings and evidence to the requesting workflow.

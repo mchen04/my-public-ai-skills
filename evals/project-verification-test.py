@@ -93,7 +93,8 @@ def expect(condition: bool, message: str) -> None:
 
 def vc(project: Path, *args: str, env: dict | None = None) -> tuple[int, dict | str]:
     done = subprocess.run([sys.executable, str(VERIFY), *args, "--project", str(project)],
-                          capture_output=True, text=True, env={**os.environ, **(env or {})}, timeout=300)
+                          capture_output=True, text=True,
+                          env={**os.environ, "PROJECT_VERIFICATION_CACHE": str(project.parent / "verification-cache"), **(env or {})}, timeout=300)
     try:
         return done.returncode, json.loads(done.stdout)
     except ValueError:
@@ -148,6 +149,7 @@ def main() -> int:
         code, out = vc(project, "accept", "--report", str(report_path), "--feature", "notes.create",
                        "--feature", "notes.empty", "--feature", "docs.readme", "--reason", "first verified run")
         expect(code == 0, f"accept after a passing run: {out}")
+        expect(any((tmp / "verification-cache" / "locks").glob("*")), "accept must keep its lock in the configured temporary cache")
         code, out = vc(project, "check")
         expect(code == 0, f"after acceptance the recipe is clean: {out}")
 

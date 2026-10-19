@@ -15,3 +15,4 @@ Push only when the user asks.
 ## Composes with
 
 `fresh-eyes` dispatches blindeval workers/judges.
+Install its sibling `loop` and `safe-push` dependencies too.

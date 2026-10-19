@@ -1,6 +1,6 @@
 # Bounded skill comparison
 
-Use EXECUTED `scripts/blindeval.py --help`; `fresh-eyes` and `loop` must be installed beside it. The [eval method](../../eval-hillclimb/references/skill-evals.md) owns cases, leakage, comparisons and acceptance. Run only authorized model calls.
+Use EXECUTED `scripts/blindeval.py --help`; `fresh-eyes`, `loop`, and `safe-push` must be installed beside it. The [eval method](../../eval-hillclimb/references/skill-evals.md) owns cases, leakage, comparisons and acceptance. Run only authorized model calls.
 
 Fixtures contain task.md/setup and hidden expected.md/rubric.md. Rubric sections: Checks, Judge, Bar. Lint before calls; lexical leakage checks prove no real secrecy.
 

@@ -16,8 +16,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "loop" / "scripts"))
 try:
     import runctl
-except ImportError:
-    print("freshctx: the loop skill (runctl.py) must be installed beside fresh-eyes", file=sys.stderr)
+except ImportError as error:
+    print(f"freshctx: install the sibling loop and safe-push skills: {error}", file=sys.stderr)
     raise SystemExit(2)
 
 FAMILIES = ("claude", "codex")
@@ -196,35 +196,21 @@ def resolve_command(command: list[str]) -> list[str]:
 
 
 def execute(command: list[str], cwd: Path | None, timeout: int, env: dict | None = None) -> dict:
-    return _execute_once(command, cwd, timeout, env)
-
-
-def _execute_once(command: list[str], cwd: Path | None, timeout: int, env: dict | None) -> dict:
-    anchor = None
     try:
-        anchor = subprocess.Popen(
-            [sys.executable, "-c", "import signal; signal.pause()"],
-            stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, preexec_fn=os.setpgrp,
-        )
         process = subprocess.Popen(
             command, cwd=str(cwd) if cwd else None, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
             text=True, stdin=subprocess.DEVNULL, env=env if env is not None else minimal_env(),
-            preexec_fn=lambda: os.setpgid(0, anchor.pid),
+            start_new_session=True,
         )
     except OSError as error:
-        if anchor is not None:
-            _reap_group(anchor.pid)
-            anchor.wait(timeout=5)
         return {"exit": -1, "stdout": "", "stderr": str(error)}
     try:
         stdout, stderr = process.communicate(timeout=timeout)
     except subprocess.TimeoutExpired:
-        _reap_group(anchor.pid)
+        _reap_group(process.pid)
         process.communicate(timeout=5)
-        anchor.wait(timeout=5)
-        return {"exit": -1, "stdout": "", "stderr": f"timed out after {timeout}s; process group {anchor.pid} killed"}
-    _reap_group(anchor.pid)
-    anchor.wait(timeout=5)
+        return {"exit": -1, "stdout": "", "stderr": f"timed out after {timeout}s; process group {process.pid} killed"}
+    _reap_group(process.pid)
     return {"exit": process.returncode, "stdout": stdout, "stderr": runctl.redact(stderr)}
 
 

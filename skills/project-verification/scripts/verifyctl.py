@@ -20,7 +20,7 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-from testselect import default_base
+from testselect import cache_root, default_base
 
 LOOP_SCRIPTS = Path(__file__).resolve().parents[2] / "loop" / "scripts"
 sys.path.insert(0, str(LOOP_SCRIPTS))
@@ -116,8 +116,8 @@ python3 "$VERIFY" run --project . --feature <id>        # one feature; omit for 
 Exit 0 means every driven feature passed. 1 is a product regression, 3 is source drift that
 needs triage, 4 is a broken harness, and 5 is a named missing precondition. Never edit an
 expected result to make a run pass; a changed expectation is a product decision.
-Evidence stays under `~/.cache/project-verification/` after teardown. Teardown stops only the
-instance this run started.
+Keep evidence outside the checkout. The default cache is `~/.cache/project-verification/`;
+`PROJECT_VERIFICATION_CACHE` overrides it. Teardown stops only the instance this run started.
 """
 
 
@@ -401,7 +401,7 @@ def cmd_run(args: argparse.Namespace) -> int:
         return EXIT["harness-failure"]
     run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S") + f"-{os.getpid()}"
     root = Path(args.evidence).expanduser() if args.evidence else \
-        Path.home() / ".cache" / "project-verification" / project.name
+        cache_root() / project.name
     evidence = root / run_id
     evidence.mkdir(parents=True, exist_ok=False)
     scratch = Path(tempfile.mkdtemp(prefix=f"verify-{project.name}-"))
@@ -473,7 +473,10 @@ def cmd_run(args: argparse.Namespace) -> int:
 
 def lock_path_outside_project(project: Path) -> Path:
     key = hashlib.sha256(str(project).encode()).hexdigest()[:16]
-    return Path.home() / ".cache" / "project-verification" / "locks" / key
+    path = (cache_root() / "locks" / key).resolve()
+    if path == project or project in path.parents:
+        raise SystemExit("PROJECT_VERIFICATION_CACHE must stay outside the project")
+    return path
 
 
 def cmd_accept(args: argparse.Namespace) -> int:
@@ -538,7 +541,7 @@ def main(argv: list[str] | None = None) -> int:
     common(p)
     p.add_argument("--feature", action="append", help="feature id; repeatable")
     p.add_argument("--changed", metavar="BASE", help="only features whose sources changed since BASE")
-    p.add_argument("--evidence", help="evidence root (default ~/.cache/project-verification/<project>)")
+    p.add_argument("--evidence", help="evidence root (default: configured verification cache/<project>)")
     p.set_defaults(func=cmd_run)
     p = sub.add_parser("accept", help="record a passing feature's sources and spec as current")
     common(p)

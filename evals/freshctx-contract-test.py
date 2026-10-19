@@ -7,6 +7,8 @@ import contextlib
 import io
 import json
 import os
+import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -155,7 +157,7 @@ class RecordingParsers(unittest.TestCase):
                     else:
                         self.assertIn(f'model_reasoning_effort="{expected}"', command)
 
-    def test_record_json_persists_requested_effort_without_inference_claim(self):
+    def test_record_json_persists_requested_effort(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp); prompt = root / "prompt"; receipt = root / "record.json"
             prompt.write_text("fixture")
@@ -200,7 +202,7 @@ class TimeoutAndEnvironment(unittest.TestCase):
         import os
         import time
         pid_file = Path(self.private_dir()) / "worker.pid"
-        result = MODULE._execute_once(["bash", "-c", "sleep 30 & echo $! > \"$OUT\"; wait"], None, 1, {**MODULE.minimal_env(), "OUT": str(pid_file)})
+        result = MODULE.execute(["bash", "-c", "sleep 30 & echo $! > \"$OUT\"; wait"], None, 1, {**MODULE.minimal_env(), "OUT": str(pid_file)})
         self.assertEqual(result["exit"], -1)
         self.assertIn("killed", result["stderr"])
         pid = int(pid_file.read_text().strip())
@@ -212,7 +214,7 @@ class TimeoutAndEnvironment(unittest.TestCase):
         import os
         import time
         pid_file = Path(self.private_dir()) / "background.pid"
-        result = MODULE._execute_once(["bash", "-c", "sleep 30 >/dev/null 2>&1 & echo $! > \"$OUT\"; exit 0"], None, 10, {**MODULE.minimal_env(), "OUT": str(pid_file)})
+        result = MODULE.execute(["bash", "-c", "sleep 30 >/dev/null 2>&1 & echo $! > \"$OUT\"; exit 0"], None, 10, {**MODULE.minimal_env(), "OUT": str(pid_file)})
         self.assertEqual(result["exit"], 0)
         pid = int(pid_file.read_text().strip())
         time.sleep(0.2)
@@ -266,13 +268,26 @@ class PermissionBoundaries(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             profile = Path(folder) / "profile"
             profile.mkdir()
-            failure = {"exit": 1, "stdout": "", "stderr": "failed to initialize in-process app-server client"}
-            success = {"exit": 0, "stdout": "different profile", "stderr": ""}
-            with patch.object(MODULE, "_execute_once", side_effect=[failure, success]) as execute_once, \
-                 patch.dict(os.environ, {"CODEX_HOME": str(profile)}):
-                result = MODULE.execute(["/x/bin/codex", "exec"], None, 10, {"CODEX_HOME": str(profile)})
-            self.assertEqual(result, failure)
-            execute_once.assert_called_once()
+            script = Path(folder) / "fake-codex.py"
+            counter = Path(folder) / "starts.txt"
+            script.write_text("import pathlib, sys\np = pathlib.Path(sys.argv[1])\np.write_text((p.read_text() if p.exists() else '') + 'start\\n')\nprint('failed to initialize in-process app-server client', file=sys.stderr)\nsys.exit(7)\n")
+            result = MODULE.execute([sys.executable, str(script), str(counter)], profile, 10,
+                                    {**MODULE.minimal_env(), "CODEX_HOME": str(profile)})
+            self.assertEqual(result["exit"], 7)
+            self.assertIn("failed to initialize", result["stderr"])
+            self.assertEqual(counter.read_text(), "start\n")
+
+    def test_missing_scanner_names_the_required_sibling_without_a_traceback(self):
+        with tempfile.TemporaryDirectory() as folder:
+            skills = Path(folder) / "skills"
+            for name in ("loop", "fresh-eyes", "skill-maintenance"):
+                shutil.copytree(ROOT / "skills" / name, skills / name, ignore=shutil.ignore_patterns("__pycache__"))
+            for skill, script in (("fresh-eyes", "freshctx.py"), ("skill-maintenance", "blindeval.py"), ("loop", "runctl.py")):
+                result = subprocess.run([sys.executable, str(skills / skill / "scripts" / script), "--help"],
+                                        capture_output=True, text=True, timeout=10)
+                self.assertEqual(result.returncode, 2)
+                self.assertIn("safe-push", result.stderr)
+                self.assertNotIn("Traceback", result.stderr)
 
     def test_prompt_review_uses_an_empty_working_directory(self):
         with tempfile.TemporaryDirectory() as folder:

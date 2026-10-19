@@ -26,8 +26,8 @@ except ImportError:  # pragma: no cover
     freshctx = None
 try:
     import runctl
-except ImportError:
-    print("blindeval: the loop skill (runctl.py) must be installed beside skill-maintenance", file=sys.stderr)
+except ImportError as error:
+    print(f"blindeval: install the sibling loop and safe-push skills: {error}", file=sys.stderr)
     raise SystemExit(2)
 
 
@@ -218,9 +218,9 @@ def judge_prompt(fx: dict, recordings: dict[str, dict]) -> str:
         parts.append("files written: " + ", ".join(str(w)[:120] for w in rec.get("writes", [])[:20]))
         parts.append("mechanical checks observed by the harness (not worker claims):")
         parts.extend(f"  {'PASS' if ok else 'FAIL'}: {check}" for ok, check in rec.get("checks", []))
-        parts.append("final answer:")
         parts.append("Observed output files (bounded snapshots):")
         parts.append(json.dumps(rec.get("file_evidence", {}), ensure_ascii=False))
+        parts.append("final answer:")
         parts.append((rec.get("final") or "(none)")[:6000])
         parts.append("")
     parts.append("Explain any deductions with a concrete recording detail and the rubric requirement it violates. "
@@ -746,7 +746,12 @@ def cmd_selftest(_args: argparse.Namespace) -> int:
         assert_blind(jp, ["alpha"], [], "evaluator prompt", vocabulary=False)
         assert_unmapped(jp + "\nfinal answer: I added a new command", ["w-aaaa", "w-bbbb"], ["v1", "v2"], ["/skills/notes-new"], "evaluator prompt")
         expect_leak(lambda: assert_unmapped(jp.replace("RECORDING w-aaaa", "RECORDING w-aaaa (v2)"), ["w-aaaa", "w-bbbb"], ["v1", "v2"], [], "evaluator prompt"), "an id-to-label mapping in the evaluator prompt")
-        assert_unmapped(jp.replace("final answer:\ndone", "final answer:\nbumped to v1.4.3, done", 1), ["w-aaaa", "w-bbbb"], ["v1", "v2"], [], "evaluator prompt")
+        if "final answer:\ndone" not in jp:
+            raise SystemExit("selftest: the final answer must follow its heading")
+        versioned = jp.replace("final answer:\ndone", "final answer:\nbumped to v1.4.3, done", 1)
+        if versioned == jp:
+            raise SystemExit("selftest: the versioned answer probe did not change the prompt")
+        assert_unmapped(versioned, ["w-aaaa", "w-bbbb"], ["v1", "v2"], [], "evaluator prompt")
         expect_leak(lambda: assert_unmapped(jp + "\nv2: w-bbbb", ["w-aaaa", "w-bbbb"], ["v1", "v2"], [], "evaluator prompt"), "a label-to-id mapping in the evaluator prompt")
         expect_leak(lambda: assert_unmapped(jp + "\n/skills/notes-new/SKILL.md", ["w-aaaa"], ["new"], ["/skills/notes-new"], "evaluator prompt"), "a candidate path in the evaluator prompt")
         if parse_scores("SCORE w-aaaa: 7\nSCORE w-bbbb: 3") != {"w-aaaa": 7.0, "w-bbbb": 3.0}:
