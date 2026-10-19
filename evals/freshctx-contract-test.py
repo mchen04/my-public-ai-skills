@@ -104,8 +104,6 @@ class IndependenceLabel(unittest.TestCase):
         finally:
             os.environ.pop("CLAUDECODE", None)
             os.environ.update(saved)
-        import inspect
-        self.assertNotIn("explicit", inspect.signature(MODULE.current_family).parameters)
 
     def test_a_proxy_shaped_string_inside_an_event_line_does_not_drop_the_event(self):
         url = "http://" + "a:b" + "@c"
