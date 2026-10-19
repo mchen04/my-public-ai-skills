@@ -25,18 +25,23 @@ def write_log(folder: Path, name: str, captions: list, end: float, viewport: lis
     return name
 
 
+def expect(condition: bool, detail) -> None:
+    if not condition:
+        raise AssertionError(detail)
+
+
 def lint_cases(tmp: Path) -> None:
     ok = walkctl("lint", write_log(tmp, "good.json", GOOD, 12.0, [640, 288]), cwd=tmp)
-    assert ok.returncode == 0 and "VERDICT: PASS" in ok.stdout, ok.stdout + ok.stderr
+    expect(ok.returncode == 0 and "VERDICT: PASS" in ok.stdout, ok.stdout + ok.stderr)
     rushed = [GOOD[0], GOOD[1], {**GOOD[2], "t": 2.0}]
     bad = walkctl("lint", write_log(tmp, "rushed.json", rushed, 12.0, [640, 288]), cwd=tmp)
-    assert bad.returncode == 1 and "needs" in bad.stdout and "VERDICT: FAIL" in bad.stdout, bad.stdout
+    expect(bad.returncode == 1 and "needs" in bad.stdout and "VERDICT: FAIL" in bad.stdout, bad.stdout)
     repeat = [GOOD[0], GOOD[1], {**GOOD[2], "text": GOOD[1]["text"]}]
     bad = walkctl("lint", write_log(tmp, "repeat.json", repeat, 12.0, [640, 288]), cwd=tmp)
-    assert bad.returncode == 1 and "same body" in bad.stdout, bad.stdout
+    expect(bad.returncode == 1 and "same body" in bad.stdout, bad.stdout)
     long = [GOOD[0], {**GOOD[1], "text": " ".join(["word"] * 40)}]
     bad = walkctl("lint", write_log(tmp, "long.json", long, 30.0, [640, 288]), cwd=tmp)
-    assert bad.returncode == 1 and "words; cut" in bad.stdout, bad.stdout
+    expect(bad.returncode == 1 and "words; cut" in bad.stdout, bad.stdout)
 
 
 def video_tools() -> bool:
@@ -53,27 +58,27 @@ def video_cases(tmp: Path) -> None:
                     "-pix_fmt", "yuv420p", str(tmp / "raw.mp4")], check=True)
 
     stretched = walkctl("burn", "raw.mp4", write_log(tmp, "tall.json", GOOD, 12.0, [640, 360]), "s.mp4", cwd=tmp)
-    assert stretched.returncode == 1 and "stretched" in stretched.stderr, stretched.stderr
-    assert not (tmp / "s.mp4").exists(), "a stretched recording must not be burned"
+    expect(stretched.returncode == 1 and "stretched" in stretched.stderr, stretched.stderr)
+    expect(not (tmp / "s.mp4").exists(), "a stretched recording must not be burned")
 
     other_run = walkctl("burn", "raw.mp4", write_log(tmp, "other.json", GOOD, 40.0, [640, 288]), "o.mp4", cwd=tmp)
-    assert other_run.returncode == 1 and "does not belong" in other_run.stderr, other_run.stderr
+    expect(other_run.returncode == 1 and "does not belong" in other_run.stderr, other_run.stderr)
 
     burned = walkctl("burn", "raw.mp4", "good.json", "out.mp4", cwd=tmp)
-    assert burned.returncode == 0, burned.stderr
+    expect(burned.returncode == 0, burned.stderr)
     result = json.loads(burned.stdout)
-    assert result["captions"] == 2 and abs(result["offset"] - 0.5) < 0.05, result
+    expect(result["captions"] == 2 and abs(result["offset"] - 0.5) < 0.05, result)
     chapters = (tmp / "out.chapters.md").read_text()
-    assert "**Projects**" in chapters and "**Task details**" in chapters, chapters
+    expect("**Projects**" in chapters and "**Task details**" in chapters, chapters)
 
     gate = walkctl("check", "out.mp4", cwd=tmp)
-    assert gate.returncode == 0 and "640x408" in gate.stdout and "VERDICT: PASS" in gate.stdout, gate.stdout
+    expect(gate.returncode == 0 and "640x408" in gate.stdout and "VERDICT: PASS" in gate.stdout, gate.stdout)
 
     timeline = json.loads((tmp / "out.timeline.json").read_text())
     timeline["captions"][1]["start"] = timeline["captions"][1]["end"] - 1.0
     (tmp / "out.timeline.json").write_text(json.dumps(timeline))
     gate = walkctl("check", "out.mp4", cwd=tmp)
-    assert gate.returncode == 1 and "VERDICT: FAIL" in gate.stdout, gate.stdout
+    expect(gate.returncode == 1 and "VERDICT: FAIL" in gate.stdout, gate.stdout)
 
 
 def main() -> int:

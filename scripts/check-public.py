@@ -8,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
+from urllib.parse import unquote
 
 ROOT = Path(__file__).resolve().parent.parent
 SCANNER_PATH = ROOT / "skills/safe-push/scripts/redact-secrets.py"
@@ -34,6 +35,32 @@ def text_problems(name: str, text: str) -> list[str]:
     for match in HOME_PATH.finditer(text):
         findings.append(f"{name}:{text.count(chr(10), 0, match.start()) + 1}: personal-home-path")
     return findings
+
+
+def heading_anchors(text: str) -> set[str]:
+    anchors = set()
+    counts = {}
+    fence = None
+    for line in text.splitlines():
+        marker = re.match(r"^ {0,3}(`{3,}|~{3,})", line)
+        if marker:
+            token = marker.group(1)
+            if fence is None:
+                fence = token
+            elif token[0] == fence[0] and len(token) >= len(fence):
+                fence = None
+            continue
+        if fence is not None:
+            continue
+        match = re.match(r"^ {0,3}#{1,6} +(.+?) *#* *$", line)
+        if not match:
+            continue
+        heading = match.group(1)
+        slug = re.sub(r"[^\w -]", "", heading.lower()).replace(" ", "-")
+        count = counts.get(slug, 0)
+        counts[slug] = count + 1
+        anchors.add(f"{slug}-{count}" if count else slug)
+    return anchors
 
 
 def check(root: Path) -> list[str]:
@@ -65,12 +92,14 @@ def check(root: Path) -> list[str]:
         problems.extend(text_problems(name, text))
         if path.suffix == ".md":
             for match in LOCAL_LINK.finditer(text):
-                link = match.group(1).split("#", 1)[0]
-                if not link or re.match(r"[a-z][a-z0-9+.-]*:", link, re.I):
+                link, _, fragment = match.group(1).partition("#")
+                if re.match(r"[a-z][a-z0-9+.-]*:", link, re.I):
                     continue
-                target = (path.parent / link).resolve()
+                target = (path.parent / link).resolve() if link else path.resolve()
                 if root.resolve() not in target.parents or not target.exists():
                     problems.append(f"{name}: broken or external local link")
+                elif fragment and target.suffix == ".md" and unquote(fragment) not in heading_anchors(target.read_text()):
+                    problems.append(f"{name}: broken local section anchor")
     readme = root / "README.md"
     skills = {path.parent.name for path in (root / "skills").glob("*/SKILL.md")}
     if not skills:
@@ -105,6 +134,16 @@ def selftest() -> int:
         (root / "README.md").write_text("[`demo`](skills/demo/SKILL.md)\n[Missing](missing.md)\n")
         if not check(root):
             raise SystemExit("public check accepted a missing reference")
+        (root / "README.md").write_text("[`demo`](skills/demo/SKILL.md)\n[Wrong](skills/demo/SKILL.md#missing)\n")
+        if not check(root):
+            raise SystemExit("public check accepted a missing section anchor")
+        (root / "README.md").write_text("[`demo`](skills/demo/SKILL.md)\n[Known](skills/demo/SKILL.md#demo)\n")
+        if check(root):
+            raise SystemExit("public check rejected a valid section anchor")
+        (skill / "SKILL.md").write_text((skill / "SKILL.md").read_text() + "\n```markdown\n# Code example\n```\n")
+        (root / "README.md").write_text("[`demo`](skills/demo/SKILL.md)\n[Wrong](skills/demo/SKILL.md#code-example)\n")
+        if not check(root):
+            raise SystemExit("public check accepted an anchor that exists only inside a code block")
         (root / "README.md").write_text("[`demo`](skills/demo/SKILL.md)\n")
         (root / "local-link").symlink_to(skill)
         if not check(root):

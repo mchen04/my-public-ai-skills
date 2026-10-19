@@ -205,11 +205,14 @@ def problems_of(project: Path, rdir: Path, recipe: dict) -> tuple[list[str], lis
     return invalid, drift
 
 
-def uncovered(project: Path, recipe: dict, base: str) -> list[str]:
+def uncovered(project: Path, recipe: dict, base: str, rdir: Path) -> list[str]:
     changed = changed_files(project, base)
     patterns = [p for f in recipe.get("features", []) for p in f.get("sources", [])]
-    rdir_rel = str(DEFAULT_DIR)
-    return sorted(c for c in changed if not c.startswith(rdir_rel)
+    try:
+        rdir_rel = rdir.resolve().relative_to(project.resolve()).as_posix()
+    except ValueError:
+        rdir_rel = None
+    return sorted(c for c in changed if (rdir_rel is None or not (c == rdir_rel or c.startswith(rdir_rel + "/")))
                   and not any(fnmatch.fnmatch(c, p) or Path(c).match(p) for p in patterns))
 
 
@@ -228,7 +231,7 @@ def cmd_check(args: argparse.Namespace) -> int:
     invalid, drift = problems_of(project, rdir, recipe)
     result = {"invalid": invalid, "drift": drift}
     if args.uncovered:
-        result["uncovered"] = uncovered(project, recipe, args.uncovered)
+        result["uncovered"] = uncovered(project, recipe, args.uncovered, rdir)
     print(json.dumps(result, indent=2))
     if invalid:
         return EXIT["invalid"]

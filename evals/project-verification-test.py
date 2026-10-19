@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -180,6 +181,16 @@ def main() -> int:
         subprocess.run(["git", "-C", str(project), "add", "-A"], check=True)
         subprocess.run(["git", "-C", str(project), "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "base"], check=True)
         (project / "README.md").write_text("# Notes\nchanged\n")
+        custom = project / "custom-verification"
+        shutil.copytree(project / ".agents/skills/verify-project", custom)
+        other = project / "custom-verification-other.txt"
+        other.write_text("unmapped synthetic file\n")
+        code, out = vc(project, "check", "--dir", "custom-verification", "--uncovered", "HEAD")
+        expect(not any(path.startswith("custom-verification/") for path in out["uncovered"]),
+               "uncovered must exclude the selected custom recipe directory")
+        expect(other.name in out["uncovered"], "a similar filename outside the recipe directory stays uncovered")
+        shutil.rmtree(custom)
+        other.unlink()
         code, out = vc(project, "run", *ev, "--changed", "HEAD")
         expect(set(out["features"]) == {"docs.readme"}, f"--changed must select only docs.readme: {out}")
 

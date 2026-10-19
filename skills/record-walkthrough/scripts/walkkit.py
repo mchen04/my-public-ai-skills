@@ -167,12 +167,12 @@ class Tour:
         self.js(CURSOR_JS + f'''
           const d = document.createElement('div'); d.id = 'walk-card';
           d.innerHTML = '<div style="max-width:880px">'
-            + ({json.dumps(self.kicker)} ? '<div style="font:600 13px/1 system-ui;letter-spacing:.18em;color:#f59e0b;margin-bottom:18px">'
-               + {json.dumps(self.kicker)} + '</div>' : '')
+            + ({json.dumps(self.kicker)} ? '<div style="font:600 13px/1 system-ui;letter-spacing:.18em;color:#f59e0b;margin-bottom:18px"></div>' : '')
             + '<div style="font:700 44px/1.15 system-ui;margin-bottom:22px"></div>'
             + {json.dumps(lines)}.map(() => '<div style="font:400 21px/1.45 system-ui;color:#cbd5e1;margin:8px 0"></div>').join('')
             + '</div>';
           const rows = d.firstChild.children, off = {json.dumps(self.kicker)} ? 1 : 0;
+          if (off) rows[0].textContent = {json.dumps(self.kicker)};
           rows[off].textContent = {json.dumps(title)};
           {json.dumps(lines)}.forEach((l, i) => rows[off + 1 + i].textContent = l);
           Object.assign(d.style, {{position:'fixed', inset:0, zIndex:2147483647, background:'#0f172a', color:'#fff',

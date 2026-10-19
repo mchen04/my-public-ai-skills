@@ -264,7 +264,7 @@ class PermissionBoundaries(unittest.TestCase):
         self.assertNotIn("--ignore-rules", command)
         self.assertEqual(command[command.index("--sandbox") + 1], "read-only")
 
-    def test_initialization_failure_does_not_switch_profiles(self):
+    def test_initialization_failure_returns_without_a_second_start(self):
         with tempfile.TemporaryDirectory() as folder:
             profile = Path(folder) / "profile"
             profile.mkdir()

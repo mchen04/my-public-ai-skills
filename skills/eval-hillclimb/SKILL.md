@@ -32,7 +32,7 @@ Do not tune on held-out/final data, paste answers or special-case benchmarks. Ve
 
 Never remove safety checks, permission checks, error handling, or required tool calls to save time or cost.
 
-Apply [checkpoint acceptance](references/performance.md#checkpoint-acceptance) before keeping or reclaiming exports. Passing evals do not authorize deployment. Publish through the host's path and read back the exact result before you claim publication.
+Apply [saved artifact acceptance](references/performance.md#saved-artifact-acceptance) before keeping exports or deleting source copies. Passing evals do not authorize deployment. Publish through the host's path and read back the exact result before you claim publication.
 
 ## Composes with
 

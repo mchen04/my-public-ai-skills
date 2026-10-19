@@ -14,7 +14,9 @@ g merge -q side >/dev/null 2>&1
 conflicted=$(git diff --name-only --diff-filter=U)
 [ "$conflicted" = "app.txt" ] || { echo "fix-conflicts-sweep FAIL: setup produced no conflict"; exit 1; }
 g add app.txt && g commit -qm "merge with markers left in"
-bash "$SWEEP" $conflicted >/dev/null && { echo "fix-conflicts-sweep FAIL: committed markers passed"; exit 1; }
+output=$(bash "$SWEEP" $conflicted)
+[ $? -eq 1 ] || { echo "fix-conflicts-sweep FAIL: committed markers passed"; exit 1; }
+printf '%s\n' "$output" | grep -q '(worktree):.*(HEAD):' && { echo "fix-conflicts-sweep FAIL: separate hits share one line"; exit 1; }
 bash "$SWEEP" >/dev/null 2>&1; [ $? -eq 2 ] || { echo "fix-conflicts-sweep FAIL: no files must be a usage error"; exit 1; }
 printf 'value = 3\n' > app.txt && g commit -qam "resolve properly"
 bash "$SWEEP" app.txt >/dev/null || { echo "fix-conflicts-sweep FAIL: a clean resolution failed"; exit 1; }
