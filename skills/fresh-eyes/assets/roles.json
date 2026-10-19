@@ -1,0 +1,23 @@
+{
+  "about": "Optional local model routing. The CLI selects its default model unless the operator configures a supported model here.",
+  "roles": {
+    "review": {
+      "family": "codex",
+      "model": "default",
+      "effort": "high",
+      "use": "Independent read-only review."
+    },
+    "review-claude": {
+      "family": "claude",
+      "model": "default",
+      "effort": "medium",
+      "use": "Independent read-only review with Claude."
+    },
+    "draft": {
+      "family": "codex",
+      "model": "default",
+      "effort": "medium",
+      "use": "Bounded drafts and model-dependent reproductions."
+    }
+  }
+}

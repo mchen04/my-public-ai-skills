@@ -1,0 +1,66 @@
+fresh-eyes	get a fresh pair of eyes on this before we merge, someone who hasn't seen the code
+fresh-eyes	I want an unbiased second opinion on this diff from a clean context
+loop	red-team this document and find every issue you can
+loop	attack this design doc from hostile angles until nothing new comes up
+loop	keep running the linter and fixing until it comes back clean three times
+deslop	clean the AI slop out of this diff, all the pointless comments and try/catch
+fix-bug	there's a bug where login fails on refresh, reproduce it then fix it
+fix-bug	debug and fix this crash, make sure you can repro it first
+open-pr	open a pull request for this branch
+address-review	handle the review comments on my PR and fix what they flagged
+safe-push	push this branch and update the PR, watch out for the wrong github account
+fix-conflicts	the rebase blew up with conflicts, resolve them
+release	cut a new release and publish the package
+agent-browser	open the site in a headless browser and take a screenshot
+skill-authoring	make a reusable skill for deploying a web service
+skill-maintenance	why didn't the safe-push skill fire yesterday? audit my skills
+fresh-eyes	the author shouldn't grade their own work, spin up a blind reviewer
+safe-push	switch accounts and commit and push this
+safe-push	push this with my work account, the personal one gets 403
+address-review	address this feedback from the slack thread I pasted, fix what they flagged
+address-review	here's a screenshot of the review notes, handle each item
+agent-browser	just click through the signup form and screenshot the result, no scoring
+release	tag v2 and publish to npm
+skill-maintenance	one of my skills keeps firing at the wrong time, audit my skills and fix it
+agent-browser	test the checkout flow in a real browser and tell me where it breaks
+skill-authoring	package this recurring workflow as a reusable Codex and Claude skill
+skill-authoring	improve this existing SKILL.md and its trigger description
+deslop	remove unnecessary guards, type casts, and narration from this generated patch
+deslop	simplify this AI-looking diff without changing behavior
+fix-bug	reproduce the intermittent upload failure and repair the underlying cause
+fix-conflicts	finish this conflicted merge and validate the result
+fix-conflicts	resolve every conflict from the rebase without losing either side's intent
+open-pr	create a GitHub PR from my current branch without merging it
+open-pr	publish this branch as a draft pull request with a good summary
+release	prepare the changelog, version bump, tag, and package publication
+skill-maintenance	find stale, bloated, or misrouting skills in my installed library and repair them
+prune-tests	audit all the tests and remove the useless or bad ones
+prune-tests	this suite is bloated, find tests that do not actually catch anything
+prune-tests	we have way too many tests, which ones can I delete safely
+code-review	review this pull request in depth and independently refute each suspected defect
+code-review	self-review my branch before I ship it, hold me to the real bar
+code-review	self-review this branch with independent hunters, refuters, and a final judge
+believe	you stopped after one failed command; find another safe way to finish
+believe	don't give up yet; test whether that blocker is real
+believe	is this actually impossible, or did we only try one approach
+eval-hillclimb	hill climb the entire application for performance and keep every test green
+eval-hillclimb	measure and improve the demo checkout flow with before and after performance results
+eval-hillclimb	make this sample expense app load faster while keeping its tests green
+project-verification	make a verify skill for this repo that launches the app and drives its main features
+project-verification	set up a feature map and a runnable recipe that proves this app still works end to end
+project-verification	our verification recipe is stale; maintain the feature map against the current source
+remove-comments	strip all the comments out of src/ but keep the license headers
+remove-comments	remove every docstring and comment from this python package
+remove-comments	get rid of the comments in these shell scripts, leave the shebangs alone
+principles	Apply prove-it-works before deciding whether this migration is ready
+principles	Which shared principle should change how we handle this uncertain handoff?
+principles	Use own-only-your-changes before cleaning this dirty checkout
+correct	agents repeatedly commit generated logs in this sample repository; add a check that rejects them
+correct	AGENTS.md already says to delete pruned tests and coders still leave them skipped, fix this at the root
+correct	turn the rules coders keep breaking in this repo into lints whose errors say what to use instead
+record-walkthrough	record a product tour of the whole admin area with captions under each screen
+record-walkthrough	make a captioned walkthrough video of every page in a sample task board
+record-walkthrough	film every tab of a sample project dashboard and explain each count in an MP4 caption
+none	explain what a hash table does
+none	rename this local variable to total
+none	change the existing button padding from 12px to 16px
